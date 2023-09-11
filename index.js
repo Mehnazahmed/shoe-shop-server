@@ -49,14 +49,25 @@ async function run() {
     app.post("/jwt", (req, res) => {
       const user = req.body;
       const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
-        expiresIn: "2h"});
+        expiresIn: "2h",
+      });
 
       res.send({ token });
     });
 
     app.get("/products", async (req, res) => {
-      const result = await productCollection.find().toArray();
+      console.log(req.query)
+      const page =parseInt(req.query.page) || 0;
+      const limit =parseInt(req.query.limit) || 10;
+      const skip = page * limit;
+
+      const result = await productCollection.find().skip(skip).limit(limit).toArray();
       res.send(result);
+    });
+
+    app.get("/totalproducts", async (req, res) => {
+      const result = await productCollection.estimatedDocumentCount();
+      res.send({totalProducts:result});
     });
 
     app.post("/users", async (req, res) => {
@@ -78,7 +89,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/carts",verifyJWT, async (req, res) => {
+    app.get("/carts", verifyJWT, async (req, res) => {
       const email = req.query.email;
       if (!email) {
         res.send([]);
@@ -103,13 +114,10 @@ async function run() {
       res.send(result);
     });
     app.delete("/carts", async (req, res) => {
-      
       const query = {};
       const result = await cartCollection.deleteMany(query);
       res.send(result);
     });
-
-
   } finally {
   }
 }
